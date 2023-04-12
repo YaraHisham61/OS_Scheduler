@@ -14,6 +14,7 @@
 void roundRobin(int q);
 void switching(struct PCB *nextProc);
 void highestPriorityFirst();
+void signalFinish(int segnum);
 struct PCB currProc, lastProc;
 PriorityQueue pq;
 int ID;
