@@ -12,6 +12,7 @@ struct PriorityQueue pq;
 int quantum;
 char choice;
 char qr[5];
+key_t messageQueueKey;
 int main(int argc, char *argv[])
 {
 
@@ -41,18 +42,35 @@ int main(int argc, char *argv[])
     initClk();
     // To get time use this
     int x = 0;
+    messageQueueKey = ftok("tempfile", 'a');
+    msgget(messageQueueKey, 0666 | IPC_CREAT);
     while (1)
     {
-       
+
         if (x == getClk())
-         printf("\nIn process generator current time is : %d\n", x++);
+        {
+            struct PCB temp = peek(&pq);
+            if (temp.id == -1)
+            {
+                dequeue(&pq);
+                msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
+                break;
+            }
+            if (temp.ArrTime <= x)
+            {
+                dequeue(&pq);
+                msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
+            }
+            printf("\nIn process generator current time is : %d\n", x++);
+        }
+
         // TODO Generation Main Loop
         // 5. Create a data structure for processes and provide it with its parameters.
         // 6. Send the information to the scheduler at the appropriate time.
         // 7. Clear clock resources
-        
     }
     destroyClk(true);
+    msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
 }
 
 void readFile()
@@ -78,6 +96,8 @@ void readFile()
         setPCB(&temp, id, ArrTime, RunTime, Priority);
         enqueue(&pq, temp, temp.ArrTime);
     }
+    temp.id = -1;
+    enqueue(&pq, temp, temp.ArrTime);
 }
 void schedulingChoose()
 {
@@ -98,5 +118,6 @@ void schedulingChoose()
 
 void clearResources(int signum)
 {
+    msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
     // TODO Clears all resources in case of interruption
 }
