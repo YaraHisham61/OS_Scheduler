@@ -1,16 +1,6 @@
 #include "headers.h"
 #include "PriorityQueue.h"
 
-// struct PCB
-// {
-//     int finTime;
-//     int arrTime;
-//     bool state;
-//     int runTime;
-//     int remainTime;
-//     int turnaroundTime;
-// };
-
 void roundRobin(int q);
 void switching(struct PCB *nextProc);
 void highestPriorityFirst();
@@ -66,7 +56,7 @@ int main(int argc, char *argv[])
                 exit(99);
             }
             else
-                currProc.PID = ID;
+                currProc.PID =ID;
         }
     }
     fprintf(file, "CPU utillization = %.2f %\n", ((float)totalUsedTime) / time * 100);
