@@ -15,6 +15,12 @@ char qr[5];
 char countProcess[5];
 int msgid;
 key_t messageQueueKey;
+struct msgbuff
+{
+    long mtype;
+    struct PCB sendpcd;
+};
+
 int main(int argc, char *argv[])
 {
 
@@ -48,6 +54,7 @@ int main(int argc, char *argv[])
     msgid = msgget(messageQueueKey, 0666 | IPC_CREAT);
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
+        struct msgbuff sendmess;
     while (1)
     {
 
@@ -65,17 +72,18 @@ int main(int argc, char *argv[])
             }*/
             while (!isEmpty(&pq)&& temp.ArrTime <= x )
             {
-                
-              temp=dequeue(&pq);
-                if (msgsnd(msgid, &temp, sizeof(temp), !IPC_NOWAIT) == -1)
-                    printf("\n Error in sending\n");
+                sendmess.mtype = 1;
 
-                   printf("\nSending id : %d\n", temp.id); 
-                 if(!isEmpty(&pq)  ) 
-                  temp = peek(&pq);
-                else 
-                break;
-                // free(&temp);
+                    temp = dequeue(&pq);
+                    sendmess.sendpcd = temp;
+                    if (msgsnd(msgid, &sendmess, sizeof(sendmess.sendpcd), !IPC_NOWAIT) == -1)
+                        printf("\n Error in sending\n");
+
+                    printf("\nSending id : %d\n", temp.id);
+                    if (!isEmpty(&pq))
+                        temp = peek(&pq);
+                    else
+                        break;
             }
             }
             //printf("\nIn process generator current time is : %d\n", x);

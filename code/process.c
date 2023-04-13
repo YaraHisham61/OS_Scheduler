@@ -10,7 +10,7 @@ int main(int agrc, char *argv[])
 {
     initClk();
     remainingtime = atoi(argv[1]);
-      printf("\nkill process\n");
+    //  printf("\nkill process\n");
 
       //kill (getpid(),SIGSTOP);
       printf("\nruntime %d\n", remainingtime);
@@ -24,15 +24,16 @@ int main(int agrc, char *argv[])
     {
         while (time== getClk())
         continue;
-        printf("\nremain time: %d\n",remainingtime);
+        printf("\nremain time: %d process id %d time %d\n",remainingtime,getpid(),time);
             remainingtime--;
             time=getClk();
         
         // remainingtime = ??;
     }
+    printf("\n process of id %d finished runing\n",getpid());
     // send signal finish to the ppid as it tereminated to be removerd from queue
     destroyClk(false);
-kill (getppid(),SIGCHLD);
+kill (getppid(),SIGUSR1);
     return 0;
 }
 /*void run()

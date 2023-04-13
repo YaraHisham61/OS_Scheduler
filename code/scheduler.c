@@ -28,6 +28,11 @@ int counter;
 int waitingTimeArr[100] = {-1};
 int totalUsedTime;
 bool first;
+struct msgbuff
+{
+    long mtype;
+    struct PCB recvpcd;
+};
 int main(int argc, char *argv[])
 {
     first = true;
@@ -37,12 +42,12 @@ int main(int argc, char *argv[])
     noProcess = atoi(argv[3]);
     key = ftok("tempfile", 'a');
     msgid = msgget(key, 0666 | IPC_CREAT);
-    signal(SIGCHLD, signalFinish);
+    signal(SIGUSR1, signalFinish);
     printf("\nChoice: %c\n", choice);
     printf("\nq : %d\n", quantum);
     printf("\nNo of process: %d\n", noProcess);
     setpqueue(&pq);
-   
+    struct msgbuff recvmess;
     // Process_generator should send the processes in msgQ
     initClk();
     // currProc.id = -1;
@@ -53,27 +58,28 @@ int main(int argc, char *argv[])
     {
         if (time == getClk())
         {
-            printf("\nIn scheduler current time is : %d\n",time);
+            printf("\nIn scheduler current time is : %d\n", time);
 
-            time++;
+           
             // printf("\nIn Scheduler current time is : %d\n", time++);
-            if (msgrcv(msgid, &temp, sizeof(temp), 0, IPC_NOWAIT) == -1)
-            { printf("\n no Error in recv\n");
-            printf("temp %d ", temp.RunTime);
-            continue;
-            }
+            if (msgrcv(msgid, &recvmess, sizeof(recvmess.recvpcd), 0, IPC_NOWAIT) == -1)
+            {
+                printf("\n no Error in recv\n");
+                // printf("temp %d ", temp.RunTime);
                 
-        
-                printf("\nwe are creating processs\n");
+            }else{
 
-                createprocess();
-               if(first)
-               {
+            temp = recvmess.recvpcd;
+            printf("\nwe are creating processs \n");
+
+            createprocess();
+            if (first)
+            {
+                printf("\nfork start\n");
                 startProcess();
-                first=false;
-               }
-               
-            
+                first = false;
+            }
+            }
             schedularchoose();
             /*if (processFinished == true && !isEmpty(&pq))
              {
@@ -93,6 +99,7 @@ int main(int argc, char *argv[])
                      currProc.PID = ID;
              }*/
             printf("\nNo of processes now is : %d\n", noProcess);
+            time =getClk();
         }
     }
     printf("CPU utillization = %.2f %%", ((float)totalUsedTime) / time * 100);
@@ -134,45 +141,42 @@ void createprocess()
 
 void startProcess() // to run process
 {
-     printf("\nstart process: count %d\n", pq.count);
+    printf("\nstart process: count %d\n", pq.count);
     if (pq.count == 0)
         return;
     currProc = dequeue(&pq);
-     printf("\nstart process:2\n");
+    printf("\nstart process: count %d\n", pq.count);
+    printf("\nstart process: %d\n", currProc.id);
+        startQuantum = time; // getClk
+        currProc.state = Running;
     if (currProc.state == NotStarted)
     {
         char qr[5];
-         printf("\nstart process:3\n");
+
         int pid = fork();
         if (pid == 0)
         {
-
-            startQuantum = time; // getClk
-            currProc.state = Running;
-            currProc.startTime = time;   
-             printf("\nstart process: quantum %d  state %d starttime %d \n",startQuantum,currProc.state,time);        // getClk
-            sprintf(qr, "%d", currProc.RunTime); // Convert integer to string
+            currProc.startTime = time;
+            printf("\nstart process: quantum %d  state %d starttime %d \n", startQuantum, currProc.state, time); // getClk
+            sprintf(qr, "%d", currProc.RunTime);                                                                 // Convert integer to string
             execl("process.out", "", &qr, NULL);
-           printf("\nstart process:5\n");
-
         }
         else
         {
-             printf("\nstart process:9\n");
+
             currProc.PID = pid;
-        }
-         printf("\nstart process:110\n");
+        };
     }
     else
     {
-        startQuantum = time; // getClk
-        currProc.state = Running;
-         printf("\nstart process:111\n");
+        kill(currProc.PID, SIGCONT);
+        printf("\nstart process:not forking\n");
     }
 }
+
 void signalFinish(int segnum)
 {
-    lastProc = currProc;
+
     /////////////////////
     processFinished = true;
     lastProc.state = Stopped;
@@ -188,7 +192,8 @@ void signalFinish(int segnum)
            lastProc.WaitTime, lastProc.TA, lastProc.WTA);
     totalUsedTime += lastProc.RunTime;
     noProcess--;
-    startProcess();
+
+    // startProcess();
     //  save the endtime of the current process
 }
 void highestPriorityFirst()
@@ -220,21 +225,28 @@ void schedularchoose()
 
 void roundRobin(int q)
 {
-
-    if (getClk() - startQuantum >= q)
+   
+    if (time - startQuantum >= q)
     {
+         int slot = time - startQuantum;
+        printf("\n clk %d and quant %d the quantum difference is %d\n", time, startQuantum, slot);
+
+        lastProc = currProc;
         if (!isEmpty(&pq))
         {
+
             currProc.RemainingTime -= quantum;
             currProc.state = Waiting;
             kill(currProc.PID, SIGSTOP);
-            enqueue(&pq, currProc, 1000);
             startProcess();
+            enqueue(&pq, lastProc, 1000);
+            printf("\nactual switch\n");
         }
         else
         {
-            startQuantum = getClk();
+            startQuantum = time;
             currProc.RemainingTime -= quantum;
+            printf("\nvirtual switch\n");
         }
     }
 }

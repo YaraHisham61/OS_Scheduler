@@ -92,7 +92,7 @@ void print_priority_queue(PriorityQueue *queue)
     struct Node *temp = queue->head;
     while (temp != NULL)
     {
-        int item = temp->pcb.id;
+        int item = temp->pcb.RunTime;
         temp = temp->next;
         printf("\nid is : %d \n ", item);
         fflush(stdout);
