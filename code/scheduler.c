@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     while (noProcess)
     {
         if (time == getClk())
-        {
+        {time ++;
             printf("\nIn scheduler current time is : %d\n", time);
 
            
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
                      currProc.PID = ID;
              }*/
             printf("\nNo of processes now is : %d\n", noProcess);
-            time =getClk();
+            
         }
     }
     printf("CPU utillization = %.2f %%", ((float)totalUsedTime) / time * 100);
