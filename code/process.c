@@ -4,15 +4,15 @@
 /* Modify this file as needed*/
 int remainingtime;
 int time = -1;
-//void run();
-//void stop();
+// void run();
+// void stop();
 int main(int agrc, char *argv[])
 {
     initClk();
-    remainingtime = argv[1];
+    remainingtime = atoi(argv[1]);
 
-   // Signal(SIGCONT, run);
-    //Signal(SIGSTOP, stop);
+    // Signal(SIGCONT, run);
+    // Signal(SIGSTOP, stop);
     // TODO it needs to get the remaining time from somewhere
     // remainingtime = ??;
     int x = 0;
@@ -26,7 +26,8 @@ int main(int agrc, char *argv[])
         }
         // remainingtime = ??;
     }
-//send signal finish to the ppid as it tereminated to be removerd from queue
+    // send signal finish to the ppid as it tereminated to be removerd from queue
+    kill(getppid(), SIGUSR1);
     destroyClk(false);
 
     return 0;

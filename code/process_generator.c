@@ -12,6 +12,8 @@ struct PriorityQueue pq;
 int quantum;
 char choice;
 char qr[5];
+char countProcess[5];
+int msgid;
 key_t messageQueueKey;
 int main(int argc, char *argv[])
 {
@@ -27,39 +29,45 @@ int main(int argc, char *argv[])
     readFile();
     print_priority_queue(&pq);
     schedulingChoose();
-
+    sprintf(countProcess, "%d", pq.count); // Convert integer to string
     int pid = fork();
     if (pid == 0)
     {
-        execl("clk.out", "", NULL); // clk
+        execl("sc.out", "", &choice, &qr, &countProcess, NULL); // clk
     }
 
     pid = fork();
     if (pid == 0)
     {
-        execl("sc.out", "", &choice, &qr, NULL); // scheduler
+        execl("clk.out", "", NULL); // scheduler
     }
     initClk();
     // To get time use this
     int x = 0;
     messageQueueKey = ftok("tempfile", 'a');
-    msgget(messageQueueKey, 0666 | IPC_CREAT);
-    while (1)
+    msgid = msgget(messageQueueKey, 0666 | IPC_CREAT);
+    if (msgid == -1)
+        printf("\nError in creating msgQ\n");
+    while (!isEmpty(&pq))
     {
 
         if (x == getClk())
         {
             struct PCB temp = peek(&pq);
-            if (temp.id == -1)
+            /*if (temp.id == -1)
             {
                 dequeue(&pq);
                 msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
                 break;
-            }
-            if (temp.ArrTime <= x)
+            }*/
+            while (temp.ArrTime <= x)
             {
-                dequeue(&pq);
-                msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
+                printf("\nSending id : %d\n", temp.id);
+                temp = dequeue(&pq);
+                if (msgsnd(msgid, &temp, sizeof(&temp), !IPC_NOWAIT) == -1)
+                    printf("\n Error in sending\n");
+                temp = peek(&pq);
+                // free(&temp);
             }
             printf("\nIn process generator current time is : %d\n", x++);
         }
@@ -70,7 +78,6 @@ int main(int argc, char *argv[])
         // 7. Clear clock resources
     }
     destroyClk(true);
-    msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
 }
 
 void readFile()
@@ -96,8 +103,8 @@ void readFile()
         setPCB(&temp, id, ArrTime, RunTime, Priority);
         enqueue(&pq, temp, temp.ArrTime);
     }
-    temp.id = -1;
-    enqueue(&pq, temp, temp.ArrTime);
+    /* temp.id = -1;
+     enqueue(&pq, temp, temp.ArrTime);*/
 }
 void schedulingChoose()
 {

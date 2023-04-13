@@ -1,6 +1,6 @@
 #ifndef headers
 #define headers 
-#include <signal.h>
+#include "signal.h"
 #include <math.h>
 #include <sys/signal.h>
 #include <stdio.h>      //if you don't use scanf/printf change this include
@@ -14,7 +14,6 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
 
 typedef short bool;
 #define true 1
