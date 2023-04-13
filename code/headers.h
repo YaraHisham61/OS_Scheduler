@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <strings.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>

@@ -55,7 +55,7 @@ struct PCB dequeue(PriorityQueue *queue)
 
     if (queue->head == NULL)
     {
-        printf("Queue is empty\n");
+        //printf("Queue is empty\n");
         struct PCB item;
         item.id = -1;
         return item;
@@ -72,7 +72,7 @@ struct PCB peek(PriorityQueue *queue)
 {
     if (queue->count == 0)
     {
-        printf("Queue is empty\n");
+        // printf("Queue is empty\n");
         struct PCB item;
         item.id = -1;
         return item;
