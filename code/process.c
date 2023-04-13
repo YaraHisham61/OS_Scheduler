@@ -10,20 +10,22 @@ int main(int agrc, char *argv[])
 {
     initClk();
     remainingtime = atoi(argv[1]);
-
+      kill (getpid(),SIGSTOP);
+      printf("\ncontinue process\n");
     // Signal(SIGCONT, run);
     // Signal(SIGSTOP, stop);
     // TODO it needs to get the remaining time from somewhere
     // remainingtime = ??;
-    int x = 0;
+   time = getClk();
 
     while (remainingtime > 0) // remaining time should be shared memory as scheduler updates it with every clk and process should keep track of it :)
     {
-        if (x == getClk())
-        {
+        while (time== getClk())
+        continue;
+        
             remainingtime--;
-            x++;
-        }
+            time=getClk();
+        
         // remainingtime = ??;
     }
     // send signal finish to the ppid as it tereminated to be removerd from queue
