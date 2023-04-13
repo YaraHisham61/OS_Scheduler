@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     int pid = fork();
     if (pid == 0)
     {
-        execl("sc.out", "", &choice, &qr, &countProcess, NULL); // clk
+        execl("scheduler.out", "", &choice, &qr, &countProcess, NULL); // clk
     }
 
     pid = fork();
@@ -48,11 +48,14 @@ int main(int argc, char *argv[])
     msgid = msgget(messageQueueKey, 0666 | IPC_CREAT);
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
-    while (!isEmpty(&pq))
+    while (1)
     {
 
         if (x == getClk())
         {
+            x++;
+            if(!isEmpty(&pq))
+            {
             struct PCB temp = peek(&pq);
             /*if (temp.id == -1)
             {
@@ -60,16 +63,22 @@ int main(int argc, char *argv[])
                 msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
                 break;
             }*/
-            while (temp.ArrTime <= x)
+            while (!isEmpty(&pq)&& temp.ArrTime <= x )
             {
-                printf("\nSending id : %d\n", temp.id);
-                temp = dequeue(&pq);
-                if (msgsnd(msgid, &temp, sizeof(&temp), !IPC_NOWAIT) == -1)
+                
+              temp=dequeue(&pq);
+                if (msgsnd(msgid, &temp, sizeof(temp), !IPC_NOWAIT) == -1)
                     printf("\n Error in sending\n");
-                temp = peek(&pq);
+
+                   printf("\nSending id : %d\n", temp.id); 
+                 if(!isEmpty(&pq)  ) 
+                  temp = peek(&pq);
+                else 
+                break;
                 // free(&temp);
             }
-            printf("\nIn process generator current time is : %d\n", x++);
+            }
+            //printf("\nIn process generator current time is : %d\n", x);
         }
 
         // TODO Generation Main Loop
@@ -77,7 +86,9 @@ int main(int argc, char *argv[])
         // 6. Send the information to the scheduler at the appropriate time.
         // 7. Clear clock resources
     }
+   
     destroyClk(true);
+    
 }
 
 void readFile()
@@ -101,6 +112,7 @@ void readFile()
         fscanf(filePtr, "%d", &RunTime);
         fscanf(filePtr, "%d", &Priority);
         setPCB(&temp, id, ArrTime, RunTime, Priority);
+        temp.state=NotStarted;
         enqueue(&pq, temp, temp.ArrTime);
     }
     /* temp.id = -1;
@@ -126,5 +138,6 @@ void schedulingChoose()
 void clearResources(int signum)
 {
     msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
+    exit(-1);
     // TODO Clears all resources in case of interruption
 }

@@ -10,8 +10,10 @@ int main(int agrc, char *argv[])
 {
     initClk();
     remainingtime = atoi(argv[1]);
-      kill (getpid(),SIGSTOP);
-      printf("\ncontinue process\n");
+      printf("\nkill process\n");
+
+      //kill (getpid(),SIGSTOP);
+      printf("\nruntime %d\n", remainingtime);
     // Signal(SIGCONT, run);
     // Signal(SIGSTOP, stop);
     // TODO it needs to get the remaining time from somewhere
@@ -22,16 +24,15 @@ int main(int agrc, char *argv[])
     {
         while (time== getClk())
         continue;
-        
+        printf("\nremain time: %d\n",remainingtime);
             remainingtime--;
             time=getClk();
         
         // remainingtime = ??;
     }
     // send signal finish to the ppid as it tereminated to be removerd from queue
-    kill(getppid(), SIGUSR1);
     destroyClk(false);
-
+kill (getppid(),SIGCHLD);
     return 0;
 }
 /*void run()
