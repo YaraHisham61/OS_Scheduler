@@ -148,9 +148,9 @@ void startProcess() // to run process
     printf("\nstart process: count %d\n", pq.count);
     printf("\nstart process: %d\n", currProc.id);
         startQuantum = time; // getClk
-        currProc.state = Running;
+        
     if (currProc.state == NotStarted)
-    {
+    {   currProc.state = Running;
         char qr[5];
 
         int pid = fork();
