@@ -1,4 +1,5 @@
 #include "headers.h"
+#include "PriorityQueue.h"
 
 void roundRobin(int q);
 void highestPriorityFirst();
