@@ -1,8 +1,5 @@
 #include "headers.h"
-#include <stdio.h>
-#include "PriorityQueue.h"
-#include <string.h>
-#include <stdlib.h>
+
 
 void clearResources(int);
 void readFile();
@@ -70,7 +67,7 @@ int main(int argc, char *argv[])
                 msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
                 break;
             }*/
-            while (!isEmpty(&pq)&& temp.ArrTime <= x )
+            while (!isEmpty(&pq)&& temp.ArrTime <= getClk())
             {
                 sendmess.mtype = 1;
 
@@ -146,6 +143,7 @@ void schedulingChoose()
 void clearResources(int signum)
 {
     msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
-    exit(-1);
+   raise(SIGINT);
+   exit(0);
     // TODO Clears all resources in case of interruption
 }

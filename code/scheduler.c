@@ -1,5 +1,4 @@
 #include "headers.h"
-#include "PriorityQueue.h"
 
 void roundRobin(int q);
 void highestPriorityFirst();
@@ -199,14 +198,15 @@ void signalFinish(int segnum)
            lastProc.WaitTime, lastProc.TA, lastProc.WTA);
     totalUsedTime += lastProc.RunTime;
     noProcess--;
-    while (lastProc.endTime == getClk()) { }
+    if (choice == 'r'||choice=='s'&&!isEmpty(&pq)&&pq.head->pcb.state!=NotStarted)
+        while (lastProc.endTime == getClk())
+        {
+        }
     if (switcher == false)
     {
         startProcess();
         slot = true;
     }
-    if (choice == 'r')
-
         //  save the endtime of the current process
         signal(SIGUSR1, signalFinish);
 }
@@ -240,7 +240,8 @@ void roundRobin(int q)
            slot = false;
        }*/
     if ((getClk() - startQuantum) >= (q) && switcher == false)
-    {int timer=getClk();
+    {
+        int timer = getClk();
         switcher = true;
         slot = true;
         printf("\n clk %d and quant %d the quantum difference is %d\n", getClk(), startQuantum, getClk() - startQuantum);
@@ -252,8 +253,10 @@ void roundRobin(int q)
             currProc.RemainingTime -= quantum;
             currProc.state = Waiting;
             kill(currProc.PID, SIGSTOP);
-            if(pq.head->pcb.state!=NotStarted)
-            while(timer==getClk()){}
+            if (pq.head->pcb.state != NotStarted)
+                while (timer == getClk())
+                {
+                }
             startProcess();
             if (lastProc.state != Stopped && lastProc.RemainingTime != 0)
                 enqueue(&pq, lastProc, 1000);
