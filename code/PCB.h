@@ -23,6 +23,7 @@ struct PCB
     int endTime;
     double WTA; // weighted tur arround time
     int PID;    // pid of the actual created process
+    int countq;
 };
 
 // sets the main prameters of the pcb
@@ -37,6 +38,7 @@ void setPCB(struct PCB *pcb, int ID, int ARR, int RUN, int Pr)
     pcb->RemainingTime = RUN;
     pcb->state = NotStarted;
     pcb->WaitTime = 0;
+    pcb->countq=0;
 }
 
 // sets the value of a pcb by the value of another pcb

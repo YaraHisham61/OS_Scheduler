@@ -1,6 +1,5 @@
 #include "headers.h"
 
-
 void clearResources(int);
 void readFile();
 void schedulingChoose();
@@ -46,30 +45,31 @@ int main(int argc, char *argv[])
     }
     initClk();
     // To get time use this
-    int x = 0;
+    int x = -1;
     messageQueueKey = ftok("tempfile", 'a');
     msgid = msgget(messageQueueKey, 0666 | IPC_CREAT);
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
-        struct msgbuff sendmess;
+    struct msgbuff sendmess;
     while (1)
     {
 
-        if (x == getClk())
+        if (x != getClk())
         {
-            x++;
-            if(!isEmpty(&pq))
+
+            x = getClk();
+            if (!isEmpty(&pq))
             {
-            struct PCB temp = peek(&pq);
-            /*if (temp.id == -1)
-            {
-                dequeue(&pq);
-                msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
-                break;
-            }*/
-            while (!isEmpty(&pq)&& temp.ArrTime <= getClk())
-            {
-                sendmess.mtype = 1;
+                struct PCB temp = peek(&pq);
+                /*if (temp.id == -1)
+                {
+                    dequeue(&pq);
+                    msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
+                    break;
+                }*/
+                while (!isEmpty(&pq) && temp.ArrTime <= getClk())
+                {
+                    sendmess.mtype = 1;
 
                     temp = dequeue(&pq);
                     sendmess.sendpcd = temp;
@@ -81,19 +81,18 @@ int main(int argc, char *argv[])
                         temp = peek(&pq);
                     else
                         break;
+                }
             }
-            }
-            //printf("\nIn process generator current time is : %d\n", x);
         }
+        // printf("\nIn process generator current time is : %d\n", x);
 
         // TODO Generation Main Loop
         // 5. Create a data structure for processes and provide it with its parameters.
         // 6. Send the information to the scheduler at the appropriate time.
         // 7. Clear clock resources
     }
-   
+
     destroyClk(true);
-    
 }
 
 void readFile()
@@ -117,7 +116,7 @@ void readFile()
         fscanf(filePtr, "%d", &RunTime);
         fscanf(filePtr, "%d", &Priority);
         setPCB(&temp, id, ArrTime, RunTime, Priority);
-        temp.state=NotStarted;
+        temp.state = NotStarted;
         enqueue(&pq, temp, temp.ArrTime);
     }
     /* temp.id = -1;
@@ -143,7 +142,7 @@ void schedulingChoose()
 void clearResources(int signum)
 {
     msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
-   raise(SIGINT);
-   exit(0);
+    raise(SIGINT);
+    exit(0);
     // TODO Clears all resources in case of interruption
 }
