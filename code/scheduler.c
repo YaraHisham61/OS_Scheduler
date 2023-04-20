@@ -303,11 +303,12 @@ void rr()
     if (pq.head->pcb.state == Running)
     {
         printf("\n the diff is : %d for process %d \n", currk->RemainingTime - *shared, currk->id);
-        if (currk->RemainingTime - *shared >= quantum)
+        if (/*currk->RemainingTime - *shared*/getClk()-lastDQ >= quantum)
         {
-            
+            kill(currk->PID, SIGUSR2);
+            kill(currk->PID, SIGSTOP);
+            lastDQ=getClk();  
             currk->state = Waiting;
-            kill(currk->PID, SIGSTOP);lastDQ=getClk();
             printf("\nStopping process %d\n", currk->id);
             currk->RemainingTime = *shared;
             enqueue(&pq, dequeue(&pq), 1000);

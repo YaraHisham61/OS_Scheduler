@@ -4,10 +4,13 @@ int shmid2;
 key_t key_sh;
 /* Modify this file as needed*/
 int remainingtime;
+bool flag;
 int time = -1;
+void run();
+void stop();
 int main(int agrc, char *argv[])
 {
-
+flag=false;
   key_sh = ftok("tempfile", 's');
   shmid2 = shmget(key_sh, 4096, IPC_CREAT | 0644);
   initClk();
@@ -16,8 +19,8 @@ int main(int agrc, char *argv[])
 
   // kill (getpid(),SIGSTOP);
   printf("\nruntime %d\n", remainingtime);
-  // signal(SIGCONT, run);
-  // Signal(SIGSTOP, stop);
+   signal(SIGUSR1, run);
+   signal(SIGUSR2, stop);
   // TODO it needs to get the remaining time from somewhere
   // remainingtime = ??;
 
@@ -26,7 +29,7 @@ int main(int agrc, char *argv[])
   {
 
     //   printf("\n the print the clk at start %d",getClk());
-    if (time != getClk())
+    if (time != getClk()&& flag==false)
     {
       time = getClk();
       remainingtime--;
@@ -36,6 +39,8 @@ int main(int agrc, char *argv[])
 
       (*shared) = remainingtime;
     }
+    else
+    flag =false;
     // remainingtime = ??;
   }
   printf("\n process of id %d finished runing\n", getpid());
@@ -46,4 +51,10 @@ int main(int agrc, char *argv[])
   kill(getppid(), SIGUSR1);
 
   return 0;
+}
+void run(){
+  flag=false;
+}
+void stop(){
+  flag=true;
 }
