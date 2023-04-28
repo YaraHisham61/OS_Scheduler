@@ -1,5 +1,6 @@
 #include "headers.h"
 
+// void signalState(int segnum);
 void roundRobin(int q);
 void highestPriorityFirst();
 void signalFinish(int segnum);
@@ -15,7 +16,8 @@ struct PCB currProc, lastProc, temp;
 int msgid;
 key_t key;
 bool processFinished = true;
-FILE *file;
+FILE *file1;
+FILE *file2;
 PriorityQueue pq;
 int startQuantum = 0;
 char choice;
@@ -36,7 +38,7 @@ int strn_run;
 int shmid2;
 key_t key_sh;
 int *shared;
-int lastDQ=0;
+int lastDQ = 0;
 struct msgbuff
 {
     long mtype;
@@ -50,7 +52,6 @@ int main(int argc, char *argv[])
     switcher = false;
     startQuantum = 10000000;
     first = true;
-    file = fopen("scheduler.log", "w");
     choice = argv[1][0];
     quantum = atoi(argv[2]);
     noProcess = atoi(argv[3]);
@@ -68,6 +69,7 @@ int main(int argc, char *argv[])
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
     time = -1;
+    file1 = fopen("scheduler.log", "a+");
     while (noProcess)
     {
         if (time != getClk())
@@ -81,12 +83,7 @@ int main(int argc, char *argv[])
             }*/
 
             // printf("\nIn Scheduler current time is : %d\n", time++);
-            if (msgrcv(msgid, &recvmess, sizeof(recvmess.recvpcd), 0, IPC_NOWAIT) == -1)
-            {
-                // printf("\nError in recv\n");
-                // printf("temp %d ", temp.RunTime);
-            }
-            else
+            while (msgrcv(msgid, &recvmess, sizeof(recvmess.recvpcd), 0, IPC_NOWAIT) != -1)
             {
 
                 temp = recvmess.recvpcd;
@@ -106,12 +103,21 @@ int main(int argc, char *argv[])
             printf("\nNo of processes now is : %d\n", noProcess);
         }
     }
-
-    printf("\nthe clk %d\n", getClk());
-    printf("CPU utillization = %.2f %%", ((float)totalUsedTime) / getClk() * 100);
-    printf("\nAvg WTA = %.2f\n", ((float)totalUsedTime) / getClk() * 100);
-    printf("Avg Waiting = %.2f\n", ((float)totalWT) / counter);
-    printf("Std WTA = %.2f\n", calculateWaitSD());
+    int temp = getClk();
+    if (choice == 'r')
+    {
+        while (temp == getClk());
+    }
+    file2 = fopen("scheduler.perf", "w");
+    if (file2 == NULL)
+        printf("fsddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+    fprintf(file2, "\nthe clk %d\n", getClk());
+    fprintf(file2, "CPU utillization = %.2f %%", ((float)totalUsedTime) / getClk() * 100);
+    fprintf(file2, "\nAvg WTA = %.2f\n", ((float)totalUsedTime) / getClk() * 100);
+    fprintf(file2, "Avg Waiting = %.2f\n", ((float)totalWT) / counter);
+    fprintf(file2, "Std WTA = %.2f\n", calculateWaitSD());
+    fclose(file2);
+    fclose(file1);
 
     // while(1){
     // if(x == getClk()) continue;
@@ -154,44 +160,44 @@ void startProcess() // to run process
         printf("\n Empty Q .. returning\n");
         return;
     }
+    while (getClk() == lastDQ)
+        ;
     currProc = dequeue(&pq);
-    printf("\nGonna run process %d at %d using %c algo\n", currProc.id, getClk(), choice);
+    printf("\nGonna run process %d at %d using %c algo state %d\n", currProc.id, getClk(), choice, currProc.state);
     startQuantum = getClk(); // getClk
 
-    if (currProc.state == NotStarted)
+    printf("\nForking new process ... \n");
+    currProc.state = Running;
+    char qr[5];
+    currProc.startTime = getClk();
+    int pid = fork();
+    if (pid == 0)
     {
-        printf("\nForking new process ... \n");
-        currProc.state = Running;
-        char qr[5];
-        currProc.startTime = getClk();
-        int pid = fork();
-        if (pid == 0)
-        {
-            printf("\nStart process: quantum %d  state %d starttime %d \n", startQuantum, currProc.state, getClk()); // getClk
-            sprintf(qr, "%d", currProc.RunTime);                                                                     // Convert integer to string
-            execl("process.out", "", &qr, NULL);
-        }
-        else
-        {
-            currProc.PID = pid;
-        }
+        printf("\nStart process: quantum %d  state %d starttime %d \n", startQuantum, currProc.state, getClk()); // getClk
+        sprintf(qr, "%d", currProc.RunTime);                                                                     // Convert integer to string
+        execl("process.out", "", &qr, NULL);
     }
     else
     {
-        kill(currProc.PID, SIGCONT);
-        printf("\nstart process %d :not forking\n", currProc.id);
-        // startQuantum--;
-        printf("\nStart Quantum is %d for process %d\n", startQuantum, currProc.id);
+        currProc.PID = pid;
     }
 }
 
 void signalFinish(int segnum)
 {
     printf("\nIn signal handler\n");
-    currProc = pq.head->pcb;
-    pq.head->pcb.RemainingTime = 0;
-    pq.head->pcb.state = Stopped;
-
+    if (pq.head != NULL && choice != 'p')
+    {
+        currProc = pq.head->pcb;
+        pq.head->pcb.RemainingTime = 0;
+        if (choice == 'r')
+            currk->state = Stopped;
+    }
+    // currProc = pq.head->pcb;
+    // pq.head->pcb.RemainingTime = 0;
+    // pq.head->pcb.state = Stopped;
+    if (choice != 's')
+        currProc.state = Stopped;
     lastProc = currProc;
     /////////////////////
     processFinished = true;
@@ -206,9 +212,12 @@ void signalFinish(int segnum)
     printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
            getClk(), lastProc.id, lastProc.ArrTime, lastProc.endTime - lastProc.startTime, lastProc.RemainingTime,
            lastProc.WaitTime, lastProc.TA, lastProc.WTA);
+  fprintf(file1,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
+           getClk(), lastProc.id, lastProc.ArrTime, lastProc.endTime - lastProc.startTime, lastProc.RemainingTime,
+           lastProc.WaitTime, lastProc.TA, lastProc.WTA);
     totalUsedTime += lastProc.RunTime;
     noProcess--;
-    lastDQ=getClk();
+    lastDQ = getClk();
 
     /* if (choice == 'r')
         while (lastProc.endTime == getClk())
@@ -290,10 +299,9 @@ void rr()
 {
     if (isEmpty(&pq))
         return;
-    if (pq.head->pcb.state == Stopped )
+    while (pq.head->pcb.state == Stopped)
     {
         dequeue(&pq);
-
     }
     if (isEmpty(&pq))
         return;
@@ -303,35 +311,52 @@ void rr()
     if (pq.head->pcb.state == Running)
     {
         printf("\n the diff is : %d for process %d \n", currk->RemainingTime - *shared, currk->id);
-        if (/*currk->RemainingTime - *shared*/getClk()-lastDQ >= quantum)
+        if (currk->RemainingTime - *shared /*getClk() - lastDQ */ >= quantum)
         {
+            fprintf(file1, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
+                getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
             kill(currk->PID, SIGUSR2);
             kill(currk->PID, SIGSTOP);
-            lastDQ=getClk();  
+            lastDQ = getClk();
             currk->state = Waiting;
             printf("\nStopping process %d\n", currk->id);
             currk->RemainingTime = *shared;
-            enqueue(&pq, dequeue(&pq), 1000);
-            
+            if (currk->state != Stopped && currk->RemainingTime != 0)
+                enqueue(&pq, dequeue(&pq), 1000);
+            else if (currk->state != Stopped)
+            {
+                raise(SIGUSR1);
+                dequeue(&pq);
+            }
         }
         else // hello
             return;
-
     }
-    
-    while(lastDQ==getClk());
+    while (!isEmpty(&pq) && pq.head->pcb.state == Stopped)
+    {
+        dequeue(&pq);
+    }
+    if (isEmpty(&pq))
+        return;
+
+    while (lastDQ == getClk())
+        ;
     currk = &pq.head->pcb;
 
     if (currk->state == Waiting)
     {
+        fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
+                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         printf("\n Continue process .. no forking\n");
         currk->countq = getClk();
         currk->state = Running;
+        *shared = currk->RemainingTime;
         kill(currk->PID, SIGCONT);
         return;
     }
     else if (currk->state == NotStarted)
-    {
+    {fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
+                        getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         printf("\nForking new process .. \n");
         int pid = fork();
         if (pid == 0)
@@ -345,6 +370,7 @@ void rr()
         {
             currk->state = Running;
             currk->PID = pid;
+            *shared = currk->RemainingTime;
             currk->countq = getClk();
         }
     }
@@ -366,35 +392,6 @@ float calculateWaitSD()
     }
     return sqrt(SD / 10);
 }
-void shortest_remaining_time_next()
-{
-
-    if (slot == true)
-    {
-        kill(currProc.PID, SIGCONT);
-        slot = false;
-    }
-    if (isEmpty(&pq))
-        return;
-    switcher = true;
-    struct PCB srtn = peek(&pq);
-    currProc.RemainingTime = (*shared);
-    if (currProc.RemainingTime > srtn.RemainingTime || currProc.state == Stopped)
-    {
-        slot = true;
-        //  currProc.RemainingTime -= (getClk() - strn_run)+1;
-        currProc.state = Waiting;
-        kill(currProc.PID, SIGSTOP);
-        printf("|\n remaining time :%d", currProc.RemainingTime);
-        if (currProc.state != Stopped && currProc.RemainingTime != 0)
-            enqueue(&pq, currProc, currProc.RemainingTime);
-        startProcess();
-        kill(currProc.PID, SIGCONT);
-        strn_run = getClk();
-        printf("\n srtn switch\n");
-    }
-    switcher = false;
-}
 void strn()
 {
     switcher = true;
@@ -402,21 +399,25 @@ void strn()
         return;
     char qr[5];
     currProc = peek(&pq);
-    printf("\n process \n");
     if (currk == NULL)
     {
-        // currProc.state = Running;
-        printf("\n process one run now \n");
-        currk = &pq.head->pcb;
-        // currk->RemainingTime = (*shared);
-        if (currk->state == Stopped)
+        if (lastDQ == getClk())
         {
+            printf("\n ana al awal \n");
+            return;
+        }
+        currk = &pq.head->pcb;
+        if (currk->state == Waiting)
+        {
+
+            fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
+                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+
             currk->state = Running;
             kill(currk->PID, SIGCONT);
         }
         else
         {
-
             int pid = fork();
             if (pid == 0)
             {
@@ -426,6 +427,10 @@ void strn()
             }
             else
             {
+
+                fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
+                        getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+
                 currk->state = Running;
                 currk->PID = pid;
             }
@@ -433,14 +438,27 @@ void strn()
     }
     else if (pq.head->pcb.id != currk->id)
     {
-        printf("\n process process run now \n");
+        printf("\n ana al tane \n");
+        lastDQ = getClk();
         currk->RemainingTime = (*shared);
-        currk->state = Stopped;
+        currk->state = Waiting;
+        fprintf(file1, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
+                getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+        kill(currk->PID, SIGUSR2);
         kill(currk->PID, SIGSTOP);
-        currk = &pq.head->pcb;
-        // currk->RemainingTime = (*shared);
-        if (currk->state == Stopped)
+        if (lastDQ == getClk())
         {
+            printf("\n dasdasdasdasdasdasdasdas \n");
+            printf("\n rakam %d \n", pq.head->pcb.id);
+            currk = NULL;
+            return;
+            // strn();
+        }
+        currk = &pq.head->pcb;
+        if (currk->state == Waiting)
+        {
+            fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
+                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
             currk->state = Running;
             kill(currk->PID, SIGCONT);
         }
@@ -455,6 +473,8 @@ void strn()
             }
             else
             {
+                fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
+                        getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
                 currk->state = Running;
                 printf("\n %d \n", currk->id);
                 currk->PID = pid;
@@ -463,9 +483,8 @@ void strn()
     }
     else if ((currk->RemainingTime = (*shared)) == 0)
     {
-
-        // currk->RemainingTime = 100000000;
         printf("\n dequeue process %d \n", currk->id);
+        currProc = pq.head->pcb;
         dequeue(&pq);
         currk = NULL;
     }

@@ -110,11 +110,14 @@ void readFile()
         int ArrTime; // time of arrival
         int RunTime; // running time (in state of running it must be devremented)
         int Priority;
+        //int memsize;
 
         fscanf(filePtr, "%d", &id);
         fscanf(filePtr, "%d", &ArrTime);
         fscanf(filePtr, "%d", &RunTime);
         fscanf(filePtr, "%d", &Priority);
+        //fscanf(filePtr, "%d", &memsize);
+        //setPCB(&temp, id, ArrTime, RunTime, Priority,memsize);
         setPCB(&temp, id, ArrTime, RunTime, Priority);
         temp.state = NotStarted;
         enqueue(&pq, temp, temp.ArrTime);
