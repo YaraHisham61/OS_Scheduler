@@ -1,4 +1,6 @@
-CPU utillization = 88.89 %
-Avg WTA = 1.60
-Avg Waiting = 16.20
-Std WTA = 15.92
+
+the clk 18
+CPU utillization = 94.44 %
+Avg WTA = 94.44
+Avg Waiting = 0.00
+Std WTA = 0.00
