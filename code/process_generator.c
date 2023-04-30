@@ -3,7 +3,6 @@
 void clearResources(int);
 void readFile();
 void schedulingChoose();
-void memoryChoose();
 struct PriorityQueue pq;
 
 int quantum;
@@ -11,39 +10,51 @@ char choice;
 char qr[5];
 char countProcess[5];
 int msgid;
+char *path;
 key_t messageQueueKey;
+int scheduling;
 struct msgbuff
 {
     long mtype;
     struct PCB sendpcd;
 };
+//
+// file name - -sch - scheduler number - -q - quantum - -mem - memoryNumber
 
 int main(int argc, char *argv[])
 {
-
     signal(SIGINT, clearResources);
-    char memChoice[5];
-    // TODO Initialization
-    // 1. Read the input files.
-    // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-    // 3. Initiate and create the scheduler and clock processes.
-    // 4. Use this function after creating the clock process to initialize clock
+    char memChoice;
+    path = argv[1];
     setpqueue(&pq);
-
     readFile();
     print_priority_queue(&pq);
-    printf("\nChoose the memory managment algorithm\n");
-    printf("f: for FirstFit\n");
-    printf("b: for BuddyFit\n");
-    scanf("%s",&memChoice);
-    printf("\nmemChoice = %s\n", memChoice);
+        quantum = -1;
+    choice = argv[3][0];
+    if (argc>6)
+    {
+        quantum = atoi(argv[5]);
+        memChoice = argv[7][0];
+        if(memChoice=='1'){
+            memChoice = 'f';
+        }else
+            memChoice = 'b';
+    }else{
+        memChoice = argv[5][0];
+        if(memChoice=='1'){
+            memChoice = 'f';
+        }else
+            memChoice = 'b';
+    }
+
     schedulingChoose();
     sprintf(countProcess, "%d", pq.count); // Convert integer to string
-
+    
     int pid = fork();
+
     if (pid == 0)
     {
-        printf("\nmemChoice = %s\n", memChoice);
+            printf("\nmemChoice = %c choice = %c\n" ,memChoice, choice);
         execl("scheduler.out", "", &choice, &qr, &countProcess, &memChoice, NULL); // clk
     }
 
@@ -70,12 +81,7 @@ int main(int argc, char *argv[])
             if (!isEmpty(&pq))
             {
                 struct PCB temp = peek(&pq);
-                /*if (temp.id == -1)
-                {
-                    dequeue(&pq);
-                    msgsnd(messageQueueKey, &temp, sizeof(&temp), !IPC_NOWAIT);
-                    break;
-                }*/
+
                 while (!isEmpty(&pq) && temp.ArrTime <= getClk())
                 {
                     sendmess.mtype = 1;
@@ -107,10 +113,14 @@ int main(int argc, char *argv[])
 void readFile()
 {
 
-    char *path = "processes.txt";
     FILE *filePtr = fopen(path, "r");
+    if (filePtr == NULL)
+    {
+        printf("The file not found\n");
+        exit(0);
+    }
     fscanf(filePtr, "%*[^\n]\n");
-
+    printf("I read %s\n", path);
     struct PCB temp;
     while (!feof(filePtr))
     {
@@ -136,17 +146,21 @@ void readFile()
 }
 void schedulingChoose()
 {
-    printf("Choose the scheduling algorithm\n");
-    printf("p: for highest priority first\n");
-    printf("s: for shortest remaining time next\n");
-    printf("r: for round robin\n");
-    scanf("%s", &choice);
-    quantum = -1;
-    if (choice == 'r')
-    {
 
-        printf("\nplease enter the quantum value\n");
-        scanf("%d", &quantum);
+    switch (choice)
+    {
+    case '1':
+        choice = 'p';
+        break;
+    case '2':
+        choice = 's';
+        break;
+    case '3':
+        choice = 'r';
+        break;
+
+    default:
+        break;
     }
     sprintf(qr, "%d", quantum); // Convert integer to string
     printf("\nqr = %s\n", qr);

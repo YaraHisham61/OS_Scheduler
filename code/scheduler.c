@@ -1,21 +1,16 @@
 #include "headers.h"
-
-// void signalState(int segnum);
-void roundRobin(int q);
 void highestPriorityFirst();
 void signalFinish(int segnum);
 void startProcess();
 float calculateWaitSD();
 void createprocess();
 void schedularchoose();
-void strn();
+void srtn();
 void rr();
 struct PCB *currk;
-void shortest_remaining_time_next();
 struct PCB currProc, lastProc, temp;
 int msgid;
 key_t key;
-bool processFinished = true;
 FILE *file1;
 FILE *file2;
 FILE *memFile;
@@ -26,20 +21,15 @@ LinkedList processList;
 int startQuantum = 0;
 char choice;
 char memChoice;
-int quantum, currQuant = 0;
+int quantum;
 int noProcess;
-int ID;
 int time;
-int utillization;
 int totalWTA;
 int totalWT;
 int counter;
-int waitingTimeArr[100] = {-1};
+int *waitingTimeArr;
 int totalUsedTime;
-bool first;
-bool switcher;
-bool slot;
-int strn_run;
+int srtn_run;
 int shmid2;
 key_t key_sh;
 int *shared;
@@ -60,9 +50,7 @@ int main(int argc, char *argv[])
     key_sh = ftok("tempfile", 's');
     shmid2 = shmget(key_sh, 4096, IPC_CREAT | 0666);
     shared = (int *)shmat(shmid2, (void *)0, 0);
-    switcher = false;
     startQuantum = 10000000;
-    first = true;
     choice = argv[1][0];
     quantum = atoi(argv[2]);
     noProcess = atoi(argv[3]);
@@ -75,12 +63,12 @@ int main(int argc, char *argv[])
     printf("\nq : %d\n", quantum);
     printf("\nNo of process: %d\n", noProcess);
     arr = malloc((noProcess + 1) * sizeof(struct BuddyNode *));
+    waitingTimeArr = malloc((noProcess + 1) * sizeof(int));
     setpqueue(&pq);
     setpqueue(&unallocatedProcess);
     struct msgbuff recvmess;
     // Process_generator should send the processes in msgQ
     initClk();
-    // currProc.id = -1;
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
     time = -1;
@@ -117,16 +105,8 @@ int main(int argc, char *argv[])
     fclose(file2);
     fclose(file1);
     fclose(memFile);
-
-    // while(1){
-    // if(x == getClk()) continue;
-    /// currProc->remainTime-=1;
-    //}
     shmctl(shmid2, IPC_RMID, (struct shmid_ds *)0);
     msgctl(msgid, IPC_RMID, (struct msqid_ds *)0);
-
-    // TODO implement the scheduler :)
-    // upon termination release the clock resources.
     destroyClk(true);
     return 0;
 }
@@ -236,8 +216,6 @@ void signalFinish(int segnum)
     if (choice != 's')
         currProc.state = Stopped;
     lastProc = currProc;
-    /////////////////////
-    processFinished = true;
     totalUsedTime += lastProc.RunTime;
     lastProc.state = Stopped;
     lastProc.TA = getClk() - lastProc.ArrTime + 1;
@@ -317,53 +295,9 @@ void schedularchoose()
         highestPriorityFirst();
         break;
     case 's':
-        strn(); // function call
+        srtn(); // function call
         break;
     }
-}
-
-void roundRobin(int q)
-{
-    /*   if (slot == true)
-       {
-           kill(currProc.PID, SIGCONT);
-           slot = false;
-       }*/
-    /*if (isEmpty(&pq))
-        return;
-    if ((currProc.RemainingTime - *shared) >= (q-1) && switcher == false)
-    {
-        int timer = getClk();
-        switcher = true;
-        slot = true;
-        printf("\n clk %d and quant %d the quantum difference is %d\n", getClk(), startQuantum, getClk() - startQuantum);
-
-        lastProc = currProc;
-        currProc.RemainingTime = *shared;
-        if (!isEmpty(&pq))
-        {
-
-            currProc.state = Waiting;
-            kill(currProc.PID, SIGSTOP);
-            if (pq.head->pcb.state != NotStarted)
-                while (timer == getClk())
-                {
-                }
-            startProcess();
-            if (lastProc.state != Stopped && lastProc.RemainingTime != 0)
-                enqueue(&pq, lastProc, 1000);
-            printf("\nactual switch\n");
-            //   print_priority_queue(&pq);
-        }
-        else
-        {
-
-            startQuantum = getClk();
-            // currProc.RemainingTime -= quantum;
-            printf("\nvirtual switch\n");
-        }
-        switcher = false;
-    }*/
 }
 void rr()
 {
@@ -400,7 +334,7 @@ void rr()
                 dequeue(&pq);
             }
         }
-        else // hello
+        else 
             return;
     }
     while (!isEmpty(&pq) && pq.head->pcb.state == Stopped)
@@ -438,7 +372,7 @@ void rr()
             char qr[5];
             sprintf(qr, "%d", currk->RunTime); // Convert integer to string
             execl("process.out", "", qr, NULL);
-            /// exit(0);
+
         }
         else
         {
@@ -449,7 +383,6 @@ void rr()
         }
     }
 }
-// run i
 
 float calculateWaitSD()
 {
@@ -466,9 +399,8 @@ float calculateWaitSD()
     }
     return sqrt(SD / 10);
 }
-void strn()
+void srtn()
 {
-    switcher = true;
     if (isEmpty(&pq))
         return;
     char qr[5];
@@ -527,7 +459,6 @@ void strn()
             printf("\n rakam %d \n", pq.head->pcb.id);
             currk = NULL;
             return;
-            // strn();
         }
         currk = &pq.head->pcb;
         if (currk->state == Waiting)
