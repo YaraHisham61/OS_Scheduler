@@ -16,11 +16,13 @@ typedef struct PriorityQueue
     Node *head;
     int count;
 } PriorityQueue;
+// intiallizing the priority queue
 void setpqueue(PriorityQueue *queue)
 {
     queue->head = NULL;
     queue->count = 0;
 }
+// add to the priority queue by a specific priority
 void enqueue(PriorityQueue *queue, struct PCB item, int priority)
 {
     Node *new_node = (Node *)malloc(sizeof(Node));
@@ -49,7 +51,7 @@ void enqueue(PriorityQueue *queue, struct PCB item, int priority)
     }
     queue->count++;
 }
-
+// remove the first node
 struct PCB dequeue(PriorityQueue *queue)
 {
 
@@ -67,7 +69,7 @@ struct PCB dequeue(PriorityQueue *queue)
     queue->count--;
     return item;
 }
-
+// get the first node of the queue
 struct PCB peek(PriorityQueue *queue)
 {
     if (queue->count == 0)
@@ -80,22 +82,9 @@ struct PCB peek(PriorityQueue *queue)
     struct PCB item = queue->head->pcb;
     return item;
 }
+// check if the priority queue is empty or not
 bool isEmpty(PriorityQueue *queue)
 {
     return queue->count == 0;
-}
-
-void print_priority_queue(PriorityQueue *queue)
-{
-    if (isEmpty(queue))
-        return;
-    struct Node *temp = queue->head;
-    while (temp != NULL)
-    {
-        int item = temp->pcb.id;
-        temp = temp->next;
-        printf("\nid is : %d \n ", item);
-        fflush(stdout);
-    }
 }
 #endif

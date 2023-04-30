@@ -18,55 +18,64 @@ struct msgbuff
     long mtype;
     struct PCB sendpcd;
 };
-//
-// file name - -sch - scheduler number - -q - quantum - -mem - memoryNumber
+// inputs
+//  file name / -sch / scheduler number / -q / quantum / -mem / memoryNumber
 
 int main(int argc, char *argv[])
 {
+    // handling the interrupt signal
     signal(SIGINT, clearResources);
     char memChoice;
     path = argv[1];
     setpqueue(&pq);
     readFile();
-    print_priority_queue(&pq);
-        quantum = -1;
+    quantum = -1;
     choice = argv[3][0];
-    if (argc>6)
+    // 1--> first fit
+    // 2--> buddy fit
+    // checking if it's a round robin or not
+    if (argc > 6)
     {
         quantum = atoi(argv[5]);
         memChoice = argv[7][0];
-        if(memChoice=='1'){
+        if (memChoice == '1')
+        {
             memChoice = 'f';
-        }else
-            memChoice = 'b';
-    }else{
-        memChoice = argv[5][0];
-        if(memChoice=='1'){
-            memChoice = 'f';
-        }else
+        }
+        else
             memChoice = 'b';
     }
-
+    else
+    {
+        memChoice = argv[5][0];
+        if (memChoice == '1')
+        {
+            memChoice = 'f';
+        }
+        else
+            memChoice = 'b';
+    }
+    // choosing the scheduler
     schedulingChoose();
     sprintf(countProcess, "%d", pq.count); // Convert integer to string
-    
-    int pid = fork();
 
+    int pid = fork();
+    // starting the scheduler
     if (pid == 0)
     {
-            printf("\nmemChoice = %c choice = %c\n" ,memChoice, choice);
+        printf("Starting the scheduler...\n");
         execl("scheduler.out", "", &choice, &qr, &countProcess, &memChoice, NULL); // clk
     }
-
+    // starting the clock
     pid = fork();
     if (pid == 0)
     {
-        execl("clk.out", "", NULL); // scheduler
+        execl("clk.out", "", NULL);
     }
     initClk();
     // To get time use this
     int x = -1;
-    messageQueueKey = ftok("tempfile", 'a');
+    messageQueueKey = ftok("tempfile", 'a'); // generating key
     msgid = msgget(messageQueueKey, 0666 | IPC_CREAT);
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
@@ -85,13 +94,10 @@ int main(int argc, char *argv[])
                 while (!isEmpty(&pq) && temp.ArrTime <= getClk())
                 {
                     sendmess.mtype = 1;
-
                     temp = dequeue(&pq);
                     sendmess.sendpcd = temp;
                     if (msgsnd(msgid, &sendmess, sizeof(sendmess.sendpcd), !IPC_NOWAIT) == -1)
                         printf("\n Error in sending\n");
-
-                    printf("\nSending id : %d\n", temp.id);
                     if (!isEmpty(&pq))
                         temp = peek(&pq);
                     else
@@ -99,14 +105,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        // printf("\nIn process generator current time is : %d\n", x);
-
-        // TODO Generation Main Loop
-        // 5. Create a data structure for processes and provide it with its parameters.
-        // 6. Send the information to the scheduler at the appropriate time.
-        // 7. Clear clock resources
     }
-
     destroyClk(true);
 }
 
@@ -120,7 +119,6 @@ void readFile()
         exit(0);
     }
     fscanf(filePtr, "%*[^\n]\n");
-    printf("I read %s\n", path);
     struct PCB temp;
     while (!feof(filePtr))
     {
@@ -146,7 +144,9 @@ void readFile()
 }
 void schedulingChoose()
 {
-
+    // 1--> HPF
+    // 2--> SRTN
+    // 3--> RR
     switch (choice)
     {
     case '1':
@@ -163,15 +163,12 @@ void schedulingChoose()
         break;
     }
     sprintf(qr, "%d", quantum); // Convert integer to string
-    printf("\nqr = %s\n", qr);
-    printf("\nquantum = %d\n", quantum);
-    // memoryChoose();
 }
 
 void clearResources(int signum)
 {
+    // clearing the message queue
     msgctl(messageQueueKey, IPC_RMID, (struct msqid_ds *)0);
     raise(SIGINT);
     exit(0);
-    // TODO Clears all resources in case of interruption
 }

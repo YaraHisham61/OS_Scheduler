@@ -9,6 +9,11 @@
         "algorithm": "c",
         "priorityqueue.h": "c",
         "string.h": "c",
-        "buddypriorityqueue": "c"
+        "buddypriorityqueue": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "ostream": "c"
     }
 }

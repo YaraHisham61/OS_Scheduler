@@ -43,7 +43,6 @@ struct msgbuff
 };
 int main(int argc, char *argv[])
 {
-    //new line
     insert(&holeList, 0, 1023, -1);
     root = newBuddyNode(1024, 1, 0, 1023);
     printf("I'm here for root processNum = %d size = %d start = %d end = %d\n",
@@ -355,7 +354,7 @@ void rr()
         fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
                 getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         printf("\n Continue process .. no forking\n");
-        currk->countq = getClk();
+
         currk->state = Running;
         *shared = currk->RemainingTime;
         kill(currk->PID, SIGCONT);
@@ -380,7 +379,7 @@ void rr()
             currk->state = Running;
             currk->PID = pid;
             *shared = currk->RemainingTime;
-            currk->countq = getClk();
+
         }
     }
 }

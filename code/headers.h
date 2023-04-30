@@ -1,7 +1,7 @@
 #ifndef headers
 #define headers
 #include "signal.h"
-#include"buddy.h"
+#include "buddy.h"
 #include <math.h>
 #include <sys/signal.h>
 #include <stdio.h> //if you don't use scanf/printf change this include
@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include "PriorityQueue.h"
 #include <string.h>
-// typedef short bool;
 #define true 1
 #define false 0
 
