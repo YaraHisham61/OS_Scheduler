@@ -128,3 +128,11 @@ At time 11 process 1 finished arr 1 total 9 remain 0 wait 0 TA 9 WTA 0.000000
 At time 14 process 4 finished arr 6 total 2 remain 0 wait 0 TA 2 WTA 0.000000
 At time 15 process 3 finished arr 3 total 0 remain 0 wait 0 TA 0 WTA 0.000000
 At time 18 process 2 finished arr 2 total 2 remain 0 wait 0 TA 2 WTA 0.000000
+At time 1 process 3 finished arr 3 total 0 remain 0 wait 0 TA 0 WTA 0.000000
+At time 11 process 1 finished arr 1 total 9 remain 0 wait 0 TA 9 WTA 0.000000
+At time 14 process 4 finished arr 6 total 2 remain 0 wait 0 TA 2 WTA 0.000000
+At time 15 process 3 finished arr 3 total 0 remain 0 wait 0 TA 0 WTA 0.000000
+At time 10 process 1 finished arr 1 total 9 remain 0 wait 0 TA 9 WTA 0.000000
+At time 13 process 4 finished arr 6 total 2 remain 0 wait 0 TA 2 WTA 0.000000
+At time 14 process 3 finished arr 3 total 0 remain 0 wait 0 TA 0 WTA 0.000000
+At time 17 process 2 finished arr 2 total 2 remain 0 wait 0 TA 2 WTA 0.000000

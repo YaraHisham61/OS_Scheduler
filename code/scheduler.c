@@ -43,6 +43,8 @@ int strn_run;
 int shmid2;
 key_t key_sh;
 int *shared;
+struct BuddyNode* arr;
+struct BuddyNode *root;
 int lastDQ = 0;
 struct msgbuff
 {
@@ -52,6 +54,7 @@ struct msgbuff
 int main(int argc, char *argv[])
 {
     insert(&holeList, 0, 1023, -1);
+    root = newBuddyNode(1024, 1, 0, 1023);
     key_sh = ftok("tempfile", 's');
     shmid2 = shmget(key_sh, 4096, IPC_CREAT | 0666);
     shared = (int *)shmat(shmid2, (void *)0, 0);
@@ -68,6 +71,7 @@ int main(int argc, char *argv[])
     printf("\nChoice: %c\n", choice);
     printf("\nq : %d\n", quantum);
     printf("\nNo of process: %d\n", noProcess);
+    arr = (struct BuddyNode*)malloc(noProcess * sizeof(struct BuddyNode));
     setpqueue(&pq);
     setpqueue(&unallocatedProcess);
     struct msgbuff recvmess;
@@ -160,6 +164,20 @@ void createprocess(struct PCB processTemp)
                processTemp.memsize, processTemp.id, theNode.start, theNode.end);
         fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
                 processTemp.memsize, processTemp.id, theNode.start, theNode.end);
+    }
+    else{
+        struct BuddyNode *theNode=findBuddyNode(root,processTemp.memsize);
+        if(theNode==NULL)
+        {
+            enqueue(&unallocatedProcess, processTemp, processTemp.memsize);
+            return;
+        }
+        theNode->processNumber=processTemp.id;
+        arr[processTemp.id]=*theNode;
+        printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
+               processTemp.memsize, processTemp.id, theNode->start, theNode->end);
+        fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
+                processTemp.memsize, processTemp.id, theNode->start, theNode->end);
     }
     switch (choice)
     {
@@ -257,14 +275,26 @@ void signalFinish(int segnum)
                lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
         fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
                 lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
-    }
+    
 
+    while (!isEmpty(&unallocatedProcess))
+    {
+        struct PCB newPCB = dequeue(&unallocatedProcess);
+        createprocess(newPCB);
+    }
+    }
+    else{
+        freeBuddyNode(&arr[lastProc.id]);
+        printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
+               lastProc.memsize, lastProc.id, arr[lastProc.id].start, arr[lastProc.id].end);
+        fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
+                lastProc.memsize, lastProc.id, arr[lastProc.id].start, arr[lastProc.id].end);
     while (!isEmpty(&unallocatedProcess) && searchBySize(&holeList, peek(&unallocatedProcess).memsize) != NULL)
     {
         struct PCB newPCB = dequeue(&unallocatedProcess);
         createprocess(newPCB);
     }
-
+    }
     //  save the endtime of the current process
     signal(SIGUSR1, signalFinish);
 }

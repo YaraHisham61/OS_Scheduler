@@ -126,6 +126,12 @@ void readFile()
     /* temp.id = -1;
      enqueue(&pq, temp, temp.ArrTime);*/
 }
+void memoryChoose(){
+    printf("\nChoose the memory managment algorithm\n");
+    printf("f: for FirstFit\n");
+    printf("b: for BuddyFit\n");
+    scanf("%s", &memChoice);
+}
 void schedulingChoose()
 {
     printf("Choose the scheduling algorithm\n");
@@ -141,13 +147,9 @@ void schedulingChoose()
         scanf("%d", &quantum);
     }
     sprintf(qr, "%d", quantum); // Convert integer to string
+    memoryChoose();
 }
-void memoryChoose(){
-    printf("\nChoose the memory managment algorithm\n");
-    printf("f: for FirstFit\n");
-    printf("b: for BuddyFit\n");
-    scanf("%s", &memChoice);
-}
+
 
 void clearResources(int signum)
 {
