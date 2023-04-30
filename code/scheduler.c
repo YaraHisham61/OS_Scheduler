@@ -43,7 +43,7 @@ int strn_run;
 int shmid2;
 key_t key_sh;
 int *shared;
-struct BuddyNode* arr;
+struct BuddyNode **arr;
 struct BuddyNode *root;
 int lastDQ = 0;
 struct msgbuff
@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
 {
     insert(&holeList, 0, 1023, -1);
     root = newBuddyNode(1024, 1, 0, 1023);
+    printf("I'm here for root processNum = %d size = %d start = %d end = %d\n",
+           root->processNumber, root->size, root->start, root->ending);
     key_sh = ftok("tempfile", 's');
     shmid2 = shmget(key_sh, 4096, IPC_CREAT | 0666);
     shared = (int *)shmat(shmid2, (void *)0, 0);
@@ -62,16 +64,17 @@ int main(int argc, char *argv[])
     startQuantum = 10000000;
     first = true;
     choice = argv[1][0];
-    memChoice = argv[4][0];
     quantum = atoi(argv[2]);
     noProcess = atoi(argv[3]);
+    memChoice = argv[4][0];
     key = ftok("tempfile", 'a');
     msgid = msgget(key, 0666 | IPC_CREAT);
     signal(SIGUSR1, signalFinish);
+    printf("argv[0] = %s,argv[1] = %s,argv[2] = %s,argv[3] = %s,argv[4] = %s,", argv[0], argv[1], argv[2], argv[3], argv[4]);
     printf("\nChoice: %c\n", choice);
     printf("\nq : %d\n", quantum);
     printf("\nNo of process: %d\n", noProcess);
-    arr = (struct BuddyNode*)malloc(noProcess * sizeof(struct BuddyNode));
+    arr = malloc((noProcess + 1) * sizeof(struct BuddyNode *));
     setpqueue(&pq);
     setpqueue(&unallocatedProcess);
     struct msgbuff recvmess;
@@ -81,8 +84,8 @@ int main(int argc, char *argv[])
     if (msgid == -1)
         printf("\nError in creating msgQ\n");
     time = -1;
-    file1 = fopen("scheduler.log", "a+");
-    memFile = fopen("memory.log", "a+");
+    file1 = fopen("scheduler.log", "w");
+    memFile = fopen("memory.log", "w");
     while (noProcess)
     {
         if (time != getClk())
@@ -90,12 +93,6 @@ int main(int argc, char *argv[])
 
             time = getClk();
             printf("\nIn scheduler current time is : %d\n", getClk());
-            /*if (choice == 'r' && (getClk() - startQuantum) >= (quantum))
-            {
-                kill(currProc.PID, SIGSTOP);
-            }*/
-
-            // printf("\nIn Scheduler current time is : %d\n", time++);
             while (msgrcv(msgid, &recvmess, sizeof(recvmess.recvpcd), 0, IPC_NOWAIT) != -1)
             {
 
@@ -103,13 +100,6 @@ int main(int argc, char *argv[])
                 printf("\nwe are creating processs \n");
 
                 createprocess(temp);
-                /*if (first && choice != 's')
-                {
-                    printf("\nfork start\n");
-                    startProcess();
-                    first = false;
-                    strn_run = getClk();
-                }*/
             }
 
             schedularchoose();
@@ -117,17 +107,11 @@ int main(int argc, char *argv[])
         }
     }
     int temp = getClk();
-    if (choice == 'r')
-    {
-        while (temp == getClk())
-            ;
-    }
     file2 = fopen("scheduler.perf", "w");
     if (file2 == NULL)
         printf("fsddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
-    fprintf(file2, "\nthe clk %d\n", getClk());
     fprintf(file2, "CPU utillization = %.2f %%", ((float)totalUsedTime) / getClk() * 100);
-    fprintf(file2, "\nAvg WTA = %.2f\n", ((float)totalUsedTime) / getClk() * 100);
+    fprintf(file2, "\nAvg WTA = %.2f\n", ((float)totalWTA) /atoi(argv[3]));
     fprintf(file2, "Avg Waiting = %.2f\n", ((float)totalWT) / counter);
     fprintf(file2, "Std WTA = %.2f\n", calculateWaitSD());
     fclose(file2);
@@ -165,20 +149,24 @@ void createprocess(struct PCB processTemp)
         fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
                 processTemp.memsize, processTemp.id, theNode.start, theNode.end);
     }
-    else{
-        struct BuddyNode *theNode=findBuddyNode(root,processTemp.memsize);
-        if(theNode==NULL)
+    else
+    {
+        struct BuddyNode *theNode = findBuddyNode(root, processTemp.memsize);
+
+        if (theNode == NULL)
         {
+            printf("There's no space :(\n");
             enqueue(&unallocatedProcess, processTemp, processTemp.memsize);
             return;
         }
-        theNode->processNumber=processTemp.id;
-        arr[processTemp.id]=*theNode;
+        theNode->processNumber = processTemp.id;
+        arr[processTemp.id] = theNode;
         printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
-               processTemp.memsize, processTemp.id, theNode->start, theNode->end);
+               processTemp.memsize, processTemp.id, theNode->start, theNode->ending);
         fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
-                processTemp.memsize, processTemp.id, theNode->start, theNode->end);
+                processTemp.memsize, processTemp.id, theNode->start, theNode->ending);
     }
+
     switch (choice)
     {
     case 'r':
@@ -186,7 +174,6 @@ void createprocess(struct PCB processTemp)
         break;
     case 'p':
         enqueue(&pq, processTemp, processTemp.Priority);
-
         break;
     case 's':
         enqueue(&pq, processTemp, processTemp.RemainingTime);
@@ -200,7 +187,7 @@ void createprocess(struct PCB processTemp)
 
 void startProcess() // to run process
 {
-    if (pq.count == 0)
+    if (pq.count == 0 || noProcess == 0)
     {
         printf("\n Empty Q .. returning\n");
         return;
@@ -215,6 +202,11 @@ void startProcess() // to run process
     currProc.state = Running;
     char qr[5];
     currProc.startTime = getClk();
+    printf("At time %d process %d started arr %d total %d remain %d wait %d \n",
+           getClk(), currProc.id, currProc.ArrTime, currProc.ArrTime, currProc.RemainingTime, currProc.WaitTime);
+
+    fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
+            getClk(), currProc.id, currProc.ArrTime, currProc.ArrTime, currProc.RemainingTime, currProc.WaitTime);
     int pid = fork();
     if (pid == 0)
     {
@@ -233,7 +225,6 @@ void signalFinish(int segnum)
     printf("\nIn signal handler\n");
     if (pq.head != NULL && choice != 'p')
     {
-        // currProc = pq.head->pcb;
         pq.head->pcb.RemainingTime = 0;
         if (choice == 'r')
         {
@@ -241,16 +232,16 @@ void signalFinish(int segnum)
             currk->state = Stopped;
         }
     }
-    // currProc = pq.head->pcb;
-    // pq.head->pcb.RemainingTime = 0;
-    // pq.head->pcb.state = Stopped;
+
     if (choice != 's')
         currProc.state = Stopped;
     lastProc = currProc;
     /////////////////////
     processFinished = true;
+    totalUsedTime += lastProc.RunTime;
     lastProc.state = Stopped;
-    lastProc.TA = getClk() - lastProc.startTime;
+    lastProc.TA = getClk() - lastProc.ArrTime + 1;
+    lastProc.WaitTime = lastProc.TA - lastProc.RunTime;
     lastProc.WTA = lastProc.TA / lastProc.RunTime;
     totalWTA += lastProc.WTA;
     totalWT += lastProc.WaitTime;
@@ -259,11 +250,10 @@ void signalFinish(int segnum)
     waitingTimeArr[counter++] = lastProc.WaitTime;
     printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
            getClk(), lastProc.id, lastProc.ArrTime, lastProc.endTime - lastProc.startTime, lastProc.RemainingTime,
-           lastProc.WaitTime, lastProc.TA, lastProc.WTA);
+           lastProc.WaitTime, lastProc.TA, lastProc.WTA, lastProc.startTime);
     fprintf(file1, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
             getClk(), lastProc.id, lastProc.ArrTime, lastProc.endTime - lastProc.startTime, lastProc.RemainingTime,
-            lastProc.WaitTime, lastProc.TA, lastProc.WTA);
-    totalUsedTime += lastProc.RunTime;
+            lastProc.WaitTime, lastProc.TA, lastProc.WTA, lastProc.startTime);
     noProcess--;
     lastDQ = getClk();
     if (memChoice == 'f')
@@ -275,25 +265,38 @@ void signalFinish(int segnum)
                lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
         fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
                 lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
-    
-
-    while (!isEmpty(&unallocatedProcess))
+        int prev = -1;
+        while (!isEmpty(&unallocatedProcess))
+        {
+            if (prev == unallocatedProcess.head->pcb.id)
+                break;
+            struct PCB newPCB = dequeue(&unallocatedProcess);
+            createprocess(newPCB);
+            if (isEmpty(&unallocatedProcess))
+                break;
+            prev = unallocatedProcess.head->pcb.id;
+        }
+    }
+    else
     {
-        struct PCB newPCB = dequeue(&unallocatedProcess);
-        createprocess(newPCB);
-    }
-    }
-    else{
-        freeBuddyNode(&arr[lastProc.id]);
+        printf("data : processNum = %d start = %d end = %d size = %d\n", arr[lastProc.id]->processNumber,
+               arr[lastProc.id]->start, arr[lastProc.id]->ending, arr[lastProc.id]->size);
+        freeBuddyNode(arr[lastProc.id]);
         printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
-               lastProc.memsize, lastProc.id, arr[lastProc.id].start, arr[lastProc.id].end);
+               lastProc.memsize, lastProc.id, arr[lastProc.id]->start, arr[lastProc.id]->ending);
         fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
-                lastProc.memsize, lastProc.id, arr[lastProc.id].start, arr[lastProc.id].end);
-    while (!isEmpty(&unallocatedProcess) && searchBySize(&holeList, peek(&unallocatedProcess).memsize) != NULL)
-    {
-        struct PCB newPCB = dequeue(&unallocatedProcess);
-        createprocess(newPCB);
-    }
+                lastProc.memsize, lastProc.id, arr[lastProc.id]->start, arr[lastProc.id]->ending);
+        int prev = -1;
+        while (!isEmpty(&unallocatedProcess) && noProcess != 0)
+        {
+            if (prev == unallocatedProcess.head->pcb.id)
+                break;
+            struct PCB newPCB = dequeue(&unallocatedProcess);
+            createprocess(newPCB);
+            if (isEmpty(&unallocatedProcess))
+                break;
+            prev = unallocatedProcess.head->pcb.id;
+        }
     }
     //  save the endtime of the current process
     signal(SIGUSR1, signalFinish);
@@ -380,6 +383,7 @@ void rr()
         printf("\n the diff is : %d for process %d \n", currk->RemainingTime - *shared, currk->id);
         if (currk->RemainingTime - *shared /*getClk() - lastDQ */ >= quantum)
         {
+            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
             fprintf(file1, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
                     getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
             kill(currk->PID, SIGUSR2);
@@ -412,6 +416,7 @@ void rr()
 
     if (currk->state == Waiting)
     {
+        currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
         fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
                 getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         printf("\n Continue process .. no forking\n");
@@ -423,6 +428,7 @@ void rr()
     }
     else if (currk->state == NotStarted)
     {
+        currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
         fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
                 getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         printf("\nForking new process .. \n");
@@ -477,7 +483,7 @@ void strn()
         currk = &pq.head->pcb;
         if (currk->state == Waiting)
         {
-
+            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
             fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
                     getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
 
@@ -495,7 +501,7 @@ void strn()
             }
             else
             {
-
+                currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
                 fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
                         getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
 
@@ -510,6 +516,7 @@ void strn()
         lastDQ = getClk();
         currk->RemainingTime = (*shared);
         currk->state = Waiting;
+        currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
         fprintf(file1, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
                 getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
         kill(currk->PID, SIGUSR2);
@@ -525,6 +532,7 @@ void strn()
         currk = &pq.head->pcb;
         if (currk->state == Waiting)
         {
+            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
             fprintf(file1, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
                     getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
             currk->state = Running;
@@ -541,6 +549,7 @@ void strn()
             }
             else
             {
+                currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
                 fprintf(file1, "At time %d process %d started arr %d total %d remain %d wait %d \n",
                         getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
                 currk->state = Running;

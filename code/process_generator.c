@@ -3,11 +3,11 @@
 void clearResources(int);
 void readFile();
 void schedulingChoose();
+void memoryChoose();
 struct PriorityQueue pq;
 
 int quantum;
 char choice;
-char memChoice;
 char qr[5];
 char countProcess[5];
 int msgid;
@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
 {
 
     signal(SIGINT, clearResources);
+    char memChoice[5];
     // TODO Initialization
     // 1. Read the input files.
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
@@ -31,12 +32,19 @@ int main(int argc, char *argv[])
 
     readFile();
     print_priority_queue(&pq);
+    printf("\nChoose the memory managment algorithm\n");
+    printf("f: for FirstFit\n");
+    printf("b: for BuddyFit\n");
+    scanf("%s",&memChoice);
+    printf("\nmemChoice = %s\n", memChoice);
     schedulingChoose();
     sprintf(countProcess, "%d", pq.count); // Convert integer to string
+
     int pid = fork();
     if (pid == 0)
     {
-        execl("scheduler.out", "", &choice, &qr, &countProcess,&memChoice, NULL); // clk
+        printf("\nmemChoice = %s\n", memChoice);
+        execl("scheduler.out", "", &choice, &qr, &countProcess, &memChoice, NULL); // clk
     }
 
     pid = fork();
@@ -118,19 +126,13 @@ void readFile()
         fscanf(filePtr, "%d", &RunTime);
         fscanf(filePtr, "%d", &Priority);
         fscanf(filePtr, "%d", &memsize);
-        setPCB(&temp, id, ArrTime, RunTime, Priority,memsize);
+        setPCB(&temp, id, ArrTime, RunTime, Priority, memsize);
         // setPCB(&temp, id, ArrTime, RunTime, Priority);
         temp.state = NotStarted;
         enqueue(&pq, temp, temp.ArrTime);
     }
     /* temp.id = -1;
      enqueue(&pq, temp, temp.ArrTime);*/
-}
-void memoryChoose(){
-    printf("\nChoose the memory managment algorithm\n");
-    printf("f: for FirstFit\n");
-    printf("b: for BuddyFit\n");
-    scanf("%s", &memChoice);
 }
 void schedulingChoose()
 {
@@ -147,9 +149,10 @@ void schedulingChoose()
         scanf("%d", &quantum);
     }
     sprintf(qr, "%d", quantum); // Convert integer to string
-    memoryChoose();
+    printf("\nqr = %s\n", qr);
+    printf("\nquantum = %d\n", quantum);
+    // memoryChoose();
 }
-
 
 void clearResources(int signum)
 {
