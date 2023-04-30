@@ -7,6 +7,7 @@ struct PriorityQueue pq;
 
 int quantum;
 char choice;
+char memChoice;
 char qr[5];
 char countProcess[5];
 int msgid;
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
     int pid = fork();
     if (pid == 0)
     {
-        execl("scheduler.out", "", &choice, &qr, &countProcess, NULL); // clk
+        execl("scheduler.out", "", &choice, &qr, &countProcess,&memChoice, NULL); // clk
     }
 
     pid = fork();
@@ -140,6 +141,12 @@ void schedulingChoose()
         scanf("%d", &quantum);
     }
     sprintf(qr, "%d", quantum); // Convert integer to string
+}
+void memoryChoose(){
+    printf("\nChoose the memory managment algorithm\n");
+    printf("f: for FirstFit\n");
+    printf("b: for BuddyFit\n");
+    scanf("%s", &memChoice);
 }
 
 void clearResources(int signum)

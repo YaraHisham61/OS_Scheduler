@@ -25,6 +25,7 @@ LinkedList holeList;
 LinkedList processList;
 int startQuantum = 0;
 char choice;
+char memChoice;
 int quantum, currQuant = 0;
 int noProcess;
 int ID;
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
     startQuantum = 10000000;
     first = true;
     choice = argv[1][0];
+    memChoice = argv[4][0];
     quantum = atoi(argv[2]);
     noProcess = atoi(argv[3]);
     key = ftok("tempfile", 'a');
@@ -143,18 +145,22 @@ int main(int argc, char *argv[])
 void createprocess(struct PCB processTemp)
 {
     printf("\nHey from msgQ\n");
-    LinkedListNode theNode = *holeAllocation(&holeList, processTemp.memsize);
-    if (theNode.start == -1)
+    if (memChoice == 'f')
     {
-        enqueue(&unallocatedProcess, processTemp, processTemp.memsize);
-        return;
+        LinkedListNode theNode = *holeAllocation(&holeList, processTemp.memsize);
+        if (theNode.start == -1)
+        {
+            enqueue(&unallocatedProcess, processTemp, processTemp.memsize);
+            return;
+        }
+        theNode.procNumber = processTemp.id;
+        insert(&processList, theNode.start, theNode.end, theNode.procNumber);
+
+        printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
+               processTemp.memsize, processTemp.id, theNode.start, theNode.end);
+        fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
+                processTemp.memsize, processTemp.id, theNode.start, theNode.end);
     }
-    theNode.procNumber = processTemp.id;
-    insert(&processList, theNode.start, theNode.end, theNode.procNumber);
-    printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
-           processTemp.memsize, processTemp.id, theNode.start, theNode.end);
-    fprintf(memFile, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(),
-            processTemp.memsize, processTemp.id, theNode.start, theNode.end);
     switch (choice)
     {
     case 'r':
@@ -242,14 +248,16 @@ void signalFinish(int segnum)
     totalUsedTime += lastProc.RunTime;
     noProcess--;
     lastDQ = getClk();
-
-    LinkedListNode tempNode = *searchProcessNumber(&processList, lastProc.id);
-    deleteLinkedListNode(&processList, &tempNode);
-    holeFree(&holeList, &tempNode);
-    printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
-           lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
-    fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
-            lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
+    if (memChoice == 'f')
+    {
+        LinkedListNode tempNode = *searchProcessNumber(&processList, lastProc.id);
+        deleteLinkedListNode(&processList, &tempNode);
+        holeFree(&holeList, &tempNode);
+        printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
+               lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
+        fprintf(memFile, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(),
+                lastProc.memsize, lastProc.id, tempNode.start, tempNode.end);
+    }
 
     while (!isEmpty(&unallocatedProcess) && searchBySize(&holeList, peek(&unallocatedProcess).memsize) != NULL)
     {
