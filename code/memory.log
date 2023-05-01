@@ -1,10 +1,10 @@
-At time 2 allocated 200 bytes for process 1 from 0 to 199
+At time 1 allocated 200 bytes for process 1 from 0 to 199
 At time 3 allocated 256 bytes for process 2 from 200 to 455
 At time 3 allocated 200 bytes for process 3 from 456 to 655
-At time 5 allocated 120 bytes for process 4 from 656 to 775
+At time 4 allocated 120 bytes for process 4 from 656 to 775
 At time 5 allocated 10 bytes for process 5 from 776 to 785
-At time 5 freed 200 bytes for process 3 from 456 to 655
-At time 11 freed 256 bytes for process 2 from 200 to 455
-At time 19 freed 120 bytes for process 4 from 656 to 775
-At time 29 freed 10 bytes for process 5 from 776 to 785
-At time 42 freed 200 bytes for process 1 from 0 to 199
+At time 9 freed 200 bytes for process 3 from 456 to 655
+At time 15 freed 200 bytes for process 1 from 0 to 199
+At time 20 freed 256 bytes for process 2 from 200 to 455
+At time 23 freed 120 bytes for process 4 from 656 to 775
+At time 31 freed 10 bytes for process 5 from 776 to 785
