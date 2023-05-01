@@ -5,8 +5,7 @@ typedef short STATE;
 #define NotStarted 0
 #define Waiting 1
 #define Running 2
-#define Terminated 3
-#define Stopped 4
+#define Stopped 3
 
 // defining the PCB struct (Process Control Block)
 struct PCB
