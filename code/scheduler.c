@@ -198,9 +198,9 @@ void signalFinish(int segnum)
     lastProc.endTime = getClk();
     lastProc.RemainingTime = 0;
     waitingTimeArr[counter++] = lastProc.WaitTime;
-
+    int total = lastProc.endTime - lastProc.startTime + 1;
     fprintf(schedulerFile, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
-            getClk(), lastProc.id, lastProc.ArrTime, lastProc.endTime - lastProc.startTime, lastProc.RemainingTime,
+            getClk(), lastProc.id, lastProc.ArrTime, total, lastProc.RemainingTime,
             lastProc.WaitTime, lastProc.TA, lastProc.WTA);
 
     noProcess--;
@@ -262,7 +262,7 @@ void highestPriorityFirst()
         currProc.WaitTime = getClk() - currProc.ArrTime - (currProc.RunTime - currProc.RemainingTime);
 
         fprintf(schedulerFile, "At time %d process %d started arr %d total %d remain %d wait %d \n",
-                getClk(), currProc.id, currProc.ArrTime, currProc.ArrTime, currProc.RemainingTime, currProc.WaitTime);
+                getClk(), currProc.id, currProc.ArrTime, 0, currProc.RemainingTime, currProc.WaitTime);
         int pid = fork(); // Forking new process
         if (pid == 0)
         {
@@ -307,14 +307,16 @@ void roundRobin()
     {
         if (currk->RemainingTime - *shared >= quantum) // Passed quantum ?
         {
-            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) - 1;
-            fprintf(schedulerFile, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
-                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+              currk->RemainingTime = *shared;
+              //currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) +2;
+            
             kill(currk->PID, SIGUSR2);
             kill(currk->PID, SIGSTOP);
             lastDQ = getClk();
             currk->state = Waiting;
-            currk->RemainingTime = *shared;
+          
+            fprintf(schedulerFile, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
+                    getClk(), currk->id, currk->ArrTime, getClk()-currk->startTime+1, currk->RemainingTime, currk->WaitTime);
             if (currk->state != Stopped && currk->RemainingTime != 0)
                 enqueue(&readyQueue, dequeue(&readyQueue), 1000);
             else if (currk->state != Stopped)
@@ -340,9 +342,10 @@ void roundRobin()
     currk = &readyQueue.head->pcb;
     if (currk->state == Waiting) // Continue a process
     {
+
         currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
         fprintf(schedulerFile, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
-                getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                getClk(), currk->id, currk->ArrTime, getClk() - currk->startTime, currk->RemainingTime, currk->WaitTime);
         currk->state = Running;
         *shared = currk->RemainingTime;
         kill(currk->PID, SIGCONT);
@@ -353,7 +356,7 @@ void roundRobin()
     {
         currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
         fprintf(schedulerFile, "At time %d process %d started arr %d total %d remain %d wait %d \n",
-                getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                getClk(), currk->id, currk->ArrTime, 0, currk->RemainingTime, currk->WaitTime);
         int pid = fork();
         if (pid == 0)
         {
@@ -363,6 +366,7 @@ void roundRobin()
         }
         else
         {
+            currk->startTime = getClk();
             currk->state = Running;
             currk->PID = pid;
             *shared = currk->RemainingTime;
@@ -401,9 +405,9 @@ void shortestRemainnigTime()
         currk = &readyQueue.head->pcb;
         if (currk->state == Waiting) // Continue a process
         {
-            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
+            // currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
             fprintf(schedulerFile, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
-                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                    getClk(), currk->id, currk->ArrTime, getClk()-currk->startTime+1, currk->RemainingTime, currk->WaitTime);
 
             currk->state = Running;
             kill(currk->PID, SIGCONT);
@@ -419,14 +423,23 @@ void shortestRemainnigTime()
             }
             else
             {
+                currk->RemainingTime = currk->RunTime;
+                currk->startTime = getClk();
                 currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
                 fprintf(schedulerFile, "At time %d process %d started arr %d total %d remain %d wait %d \n",
-                        getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                        getClk(), currk->id, currk->ArrTime, 0, currk->RemainingTime, currk->WaitTime);
 
                 currk->state = Running;
                 currk->PID = pid;
             }
         }
+    }
+    else if (( (*shared)) == 0)
+    {
+        currk->RemainingTime = (*shared);
+        currProc = *currk;
+        dequeue(&readyQueue);
+        currk = NULL;
     }
     else if (readyQueue.head->pcb.id != currk->id) // Stopping currently running process
     {
@@ -435,7 +448,7 @@ void shortestRemainnigTime()
         currk->state = Waiting;
         currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) + 1;
         fprintf(schedulerFile, "At time %d process %d stopped arr %d total %d remain %d wait %d \n",
-                getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                getClk(), currk->id, currk->ArrTime,getClk()-currk->startTime+1, currk->RemainingTime, currk->WaitTime);
         kill(currk->PID, SIGUSR2);
         kill(currk->PID, SIGSTOP);
         if (lastDQ == getClk())
@@ -447,9 +460,10 @@ void shortestRemainnigTime()
         currk = &readyQueue.head->pcb;
         if (currk->state == Waiting)
         {
-            currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) + 1;
+           
+            // currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) + 1;
             fprintf(schedulerFile, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",
-                    getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                    getClk(), currk->id, currk->ArrTime, getClk()-currk->startTime+1, currk->RemainingTime, currk->WaitTime);
             currk->state = Running;
             kill(currk->PID, SIGCONT);
         }
@@ -464,20 +478,17 @@ void shortestRemainnigTime()
             }
             else
             {
+                currk->RemainingTime = currk->RunTime;
+                currk->startTime = getClk();
                 currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime) + 1;
                 fprintf(schedulerFile, "At time %d process %d started arr %d total %d remain %d wait %d \n",
-                        getClk(), currk->id, currk->ArrTime, currk->RunTime, currk->RemainingTime, currk->WaitTime);
+                        getClk(), currk->id, currk->ArrTime, 0, currk->RemainingTime, currk->WaitTime);
                 currk->state = Running;
                 currk->PID = pid;
             }
         }
     }
-    else if ((currk->RemainingTime = (*shared)) == 0)
-    {
-        currProc = *currk;
-        dequeue(&readyQueue);
-        currk = NULL;
-    }
+    
 }
 
 void finalize(int signum)
@@ -492,7 +503,6 @@ void finalize(int signum)
     for (int i = 0; i <= totalProcesses; i++)
     {
         free(memArray[i]);
-        free(waitingTimeArr[i]);
     }
     free(memArray);
     free(waitingTimeArr);
