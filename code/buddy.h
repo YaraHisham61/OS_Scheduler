@@ -96,7 +96,7 @@ void mergeBuddyNodes(struct BuddyNode *BuddyNode)
     free(BuddyNode->left);
     free(BuddyNode->right);
     BuddyNode->isFree = 1;
-    printf("I'm Here\n");
+   
     if (BuddyNode->parent->left->isFree == 1 && BuddyNode->parent->right->isFree == 1)
         mergeBuddyNodes(BuddyNode->parent);
 }
