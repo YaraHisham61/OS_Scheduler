@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
             time = getClk();
             while (msgrcv(msgid, &recvmess, sizeof(recvmess.recvpcd), 0, IPC_NOWAIT) != -1) // Checking if there is processes to recieve
             {
-                temp = recvmess.recvpcd;//a comment
+                temp = recvmess.recvpcd; // a comment
                 createprocess(temp);
             }
             schedularchoose();
@@ -191,6 +191,8 @@ void createprocess(struct PCB processTemp)
 
 void signalFinish(int segnum)
 {
+    if (choice == 's')
+        return;
     if (readyQueue.head != NULL && choice != 'p')
     {
         readyQueue.head->pcb.RemainingTime = 0;
@@ -431,6 +433,7 @@ void shortestRemainnigTime()
         currk = &readyQueue.head->pcb;
         if (currk->state == Waiting) // Continue a process
         {
+            
             kill(currk->PID, SIGCONT);
             //  currk->RemainingTime = (*shared);
             currk->WaitTime = getClk() - currk->ArrTime - (currk->RunTime - currk->RemainingTime);
@@ -462,7 +465,7 @@ void shortestRemainnigTime()
         }
     }
 
-    else if (readyQueue.head->pcb.id != currk->id && readyQueue.head->pcb.RemainingTime < currk->RemainingTime) // Stopping currently running process
+    else if (readyQueue.head->pcb.id != currk->id) // Stopping currently running process
     {
         lastDQ = getClk();
         kill(currk->PID, SIGUSR2);
@@ -481,6 +484,7 @@ void shortestRemainnigTime()
         currk = &readyQueue.head->pcb;
         if (currk->state == Waiting)
         {
+            
             currk->state = Running;
             kill(currk->PID, SIGCONT);
             // currk->RemainingTime = (*shared);
@@ -509,10 +513,28 @@ void shortestRemainnigTime()
             }
         }
     }
-    else if (((*shared)) == 0)
+    else if ((currk->RemainingTime = (*shared)) == 0)
     {
-        currk->RemainingTime = (*shared);
-        currProc = *currk;
+        currk->RemainingTime = 0;
+        currProc = readyQueue.head->pcb;
+        lastProc = currProc;
+        totalUsedTime += lastProc.RunTime;
+        lastProc.state = Stopped;
+        lastProc.TA = getClk() - lastProc.ArrTime + 1;
+        lastProc.WaitTime = lastProc.TA - lastProc.RunTime;
+        lastProc.WTA = lastProc.TA / lastProc.RunTime;
+        totalWTA += lastProc.WTA;
+        totalWT += lastProc.WaitTime;
+        lastProc.endTime = getClk();
+        lastProc.RemainingTime = 0;
+        waitingTimeArr[counter++] = lastProc.WaitTime;
+        int total = lastProc.endTime - lastProc.startTime + 1;
+        fprintf(schedulerFile, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
+                getClk(), lastProc.id, lastProc.ArrTime, total, lastProc.RemainingTime,
+                lastProc.WaitTime, lastProc.TA, lastProc.WTA);
+
+        noProcess--;
+        lastDQ = getClk();
         dequeue(&readyQueue);
         currk = NULL;
     }
